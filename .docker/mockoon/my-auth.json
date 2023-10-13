@@ -1,0 +1,78 @@
+{
+  "uuid": "643a8453-80e5-4d8c-8c80-56899e8c0a9b",
+  "lastMigration": 27,
+  "name": "My auth",
+  "endpointPrefix": "",
+  "latency": 0,
+  "port": 80,
+  "hostname": "",
+  "folders": [],
+  "routes": [
+    {
+      "uuid": "82e63dfe-c57c-4a09-bbec-8a4be55a377c",
+      "type": "http",
+      "documentation": "",
+      "method": "get",
+      "endpoint": "v1/auth/validate-token",
+      "responses": [
+        {
+          "uuid": "f90107fa-b5ca-4c52-bf52-71524b72b7ae",
+          "body": "{\n  \"payload\": {\n    \"userId\": \"userId-{{ faker 'datatype.uuid' }}\",\n    \"email\": \"email-{{ faker 'internet.email' }}\"\n  },\n  \"status\": 200\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true
+        }
+      ],
+      "enabled": true,
+      "responseMode": null
+    }
+  ],
+  "rootChildren": [
+    {
+      "type": "route",
+      "uuid": "82e63dfe-c57c-4a09-bbec-8a4be55a377c"
+    }
+  ],
+  "proxyMode": false,
+  "proxyHost": "",
+  "proxyRemovePrefix": false,
+  "tlsOptions": {
+    "enabled": false,
+    "type": "CERT",
+    "pfxPath": "",
+    "certPath": "",
+    "keyPath": "",
+    "caPath": "",
+    "passphrase": ""
+  },
+  "cors": true,
+  "headers": [
+    {
+      "key": "Content-Type",
+      "value": "application/json"
+    }
+  ],
+  "proxyReqHeaders": [
+    {
+      "key": "",
+      "value": ""
+    }
+  ],
+  "proxyResHeaders": [
+    {
+      "key": "",
+      "value": ""
+    }
+  ],
+  "data": []
+}

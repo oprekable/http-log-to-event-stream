@@ -1,0 +1,106 @@
+# ------------------------------------------------------------------------------
+# This is an example file to get you started with using
+# declarative configuration in Kong.
+# ------------------------------------------------------------------------------
+
+# Metadata fields start with an underscore (_)
+# Fields that do not start with an underscore represent Kong entities and attributes
+
+# _format_version is mandatory,
+# it specifies the minimum version of Kong that supports the format
+_format_version: "2.1"
+
+# _transform is optional, defaulting to true.
+# It specifies whether schema transformations should be applied when importing this file
+# as a rule of thumb, leave this setting to true if you are importing credentials
+# with plain passwords, which need to be encrypted/hashed before storing on the database.
+# On the other hand, if you are reimporting a database with passwords already encrypted/hashed,
+# set it to false.
+_transform: true
+
+services:
+  - name: mockoon-one
+    url: http://one.my.internal
+    routes:
+      - name: route-one
+        paths:
+          - /one
+    plugins:
+      - name: my-auth
+        config:
+          my_auth_endpoint: http://auth.my.internal/api/v1/auth/validate-token
+      - name: http-log-with-body
+        config:
+          http_endpoint: http://my_user:my_password@svc-http-log-server.my.internal/mockoon-one
+          method: POST
+          timeout: 1000
+          keepalive: 1000
+          flush_timeout: 2
+          retry_count: 15
+
+  - name: mockoon-two
+    url: http://two.my.internal
+    routes:
+      - name: route-two
+        paths:
+          - /two
+    plugins:
+      - name: http-log-with-body
+        config:
+          http_endpoint: http://my_user:my_password@svc-http-log-server.my.internal/mockoon-two
+          method: POST
+          timeout: 1000
+          keepalive: 1000
+          flush_timeout: 2
+          retry_count: 15
+
+  - name: mockoon-three
+    url: http://three.my.internal
+    routes:
+      - name: route-three
+        paths:
+          - /three
+    plugins:
+      - name: http-log-with-body
+        config:
+          http_endpoint: http://my_user:my_password@svc-http-log-server.my.internal/mockoon-three?delay=1
+          method: POST
+          timeout: 5000
+          keepalive: 5000
+          flush_timeout: 2
+          retry_count: 15
+
+  - name: mockoon-four
+    url: http://four.my.internal
+    routes:
+      - name: route-four
+        paths:
+          - /four
+    plugins:
+      - name: http-log-with-body
+        config:
+          http_endpoint: http://any.unknown.host.internal
+          method: POST
+          timeout: 5000
+          keepalive: 5000
+          flush_timeout: 2
+          retry_count: 15
+
+  - name: consumer
+    host: consume.upstream
+    routes:
+      - name: route-consumer
+        paths:
+          - /consumer
+
+
+upstreams:
+    - name: consume.upstream
+      targets:
+        - target: svc-http-log-consumer-1.my.internal:80
+          weight: 50
+        - target: svc-http-log-consumer-2.my.internal:80
+          weight: 25
+        - target: svc-http-log-consumer-3.my.internal:80
+          weight: 25
+

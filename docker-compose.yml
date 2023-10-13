@@ -1,0 +1,244 @@
+version: '3.9'
+
+services:
+  http-log-to-event-kong-gateway:
+    build:
+      context: .
+      dockerfile: ./.docker/kong-gateway/Dockerfile
+    environment:
+      - KONG_DECLARATIVE_CONFIG=/home/kong/development.yml
+    labels:
+      com.my.service.name: "Kong Gateway"
+      com.my.service.description: "Kong Gateway"
+      com.my.service.image: "kong-gateway"
+    networks:
+      default:
+        aliases:
+          - api.my.internal
+    ports:
+      - "7999:7999"
+      - "8000:80"
+    depends_on:
+      - http-log-to-event-mockoon-my-auth
+      - http-log-to-event-mockoon-one
+      - http-log-to-event-mockoon-two
+      - http-log-to-event-mockoon-three
+      - http-log-to-event-mockoon-four
+    volumes:
+      - ./.docker/kong-gateway/kong.conf:/etc/kong/kong.conf
+      - ./.docker/kong-gateway/declarative:/home/kong
+      - ./.docker/kong-gateway/plugins/my-auth:/usr/local/share/lua/5.1/kong/plugins/my-auth
+      - ./.docker/kong-gateway/plugins/http-log-with-body:/usr/local/share/lua/5.1/kong/plugins/http-log-with-body
+
+  http-log-to-event-mockoon-my-auth:
+    image: mockoon/cli:latest
+    labels:
+      com.my.service.name: "API Mock Server My Auth"
+      com.my.service.description: "API Mock Server My Auth"
+      com.my.service.image: "mockoon/cli"
+    networks:
+      default:
+        aliases:
+          - auth.my.internal
+    ports:
+      - "3000:80"
+    volumes:
+      - type: bind
+        source: ./.docker/mockoon/my-auth.json
+        target: /data
+    command: --data data
+
+  http-log-to-event-mockoon-one:
+    image: mockoon/cli:latest
+    labels:
+      com.my.service.name: "API Mock Server One"
+      com.my.service.description: "API Mock Server One"
+      com.my.service.image: "mockoon/cli"
+    networks:
+      default:
+        aliases:
+          - one.my.internal
+    ports:
+      - "3001:80"
+    volumes:
+      - type: bind
+        source: ./.docker/mockoon/mock_api.json
+        target: /data
+    command: --data data
+
+  http-log-to-event-mockoon-two:
+    image: mockoon/cli:latest
+    labels:
+      com.my.service.name: "API Mock Server Two"
+      com.my.service.description: "API Mock Server Two"
+      com.my.service.image: "mockoon/cli"
+    networks:
+      default:
+        aliases:
+          - two.my.internal
+    ports:
+      - "3002:80"
+    volumes:
+      - type: bind
+        source: ./.docker/mockoon/mock_api.json
+        target: /data
+    command: --data data
+
+  http-log-to-event-mockoon-three:
+    image: mockoon/cli:latest
+    labels:
+      com.my.service.name: "API Mock Server Three"
+      com.my.service.description: "API Mock Server Three"
+      com.my.service.image: "mockoon/cli"
+    networks:
+      default:
+        aliases:
+          - three.my.internal
+    ports:
+      - "3003:80"
+    volumes:
+      - type: bind
+        source: ./.docker/mockoon/mock_api.json
+        target: /data
+    command: --data data
+
+  http-log-to-event-mockoon-four:
+    image: mockoon/cli:latest
+    labels:
+      com.my.service.name: "API Mock Server Four"
+      com.my.service.description: "API Mock Server Four"
+      com.my.service.image: "mockoon/cli"
+    networks:
+      default:
+        aliases:
+          - four.my.internal
+    ports:
+      - "3004:80"
+    volumes:
+      - type: bind
+        source: ./.docker/mockoon/mock_api.json
+        target: /data
+    command: --data data
+
+  http-log-to-event-redis:
+    image: redis:6.2-alpine
+    labels:
+      com.my.service.name: "Redis Stream"
+      com.my.service.description: "Redis Stream"
+      com.my.service.image: "redis"
+    restart: always
+    networks:
+      default:
+        aliases:
+          - redis.my.internal
+    ports:
+      - '16379:6379'
+    command: redis-server --save 20 1 --loglevel warning
+    volumes:
+      - ./.docker/redis/data:/data
+
+  http-log-to-event-svc-http-log-server:
+    build:
+      context: .
+      dockerfile: ./svc-http-log-server/Dockerfile
+    labels:
+      com.my.service.name: "Service HTTP Log Server Publisher"
+      com.my.service.description: "Service HTTP Log Server Publisher"
+      com.my.service.image: "ssvc-http-log-server"
+    networks:
+      default:
+        aliases:
+          - svc-http-log-server.my.internal
+    ports:
+      - "4000:80"
+    depends_on:
+      - http-log-to-event-redis
+    volumes:
+      - type: bind
+        source: ./svc-http-log-server
+        target: /home/app/svc-http-log-server
+    command:
+      - --redis=redis.my.internal:6379
+      - --http=:80
+      - --endpoints=mockoon-one=1000,mockoon-two=1000,mockoon-three=1000
+
+  http-log-to-event-svc-http-log-consumer-1:
+    build:
+      context: .
+      dockerfile: ./svc-http-log-consumer/Dockerfile
+    labels:
+      com.my.service.name: "Service HTTP Log Server Consumer"
+      com.my.service.description: "Service HTTP Log Server Consumer"
+      com.my.service.image: "svc-http-log-consumer"
+    networks:
+      default:
+        aliases:
+          - svc-http-log-consumer-1.my.internal
+    ports:
+      - "5001:80"
+    depends_on:
+      - http-log-to-event-redis
+    volumes:
+      - type: bind
+        source: ./svc-http-log-consumer
+        target: /home/app/svc-http-log-consumer
+    command:
+      - --service=svc-http-log-consumer
+      - --server=svc-http-log-consumer-1
+      - --redis=redis.my.internal:6379
+      - --http=:80
+      - --endpoints=mockoon-one=1000,mockoon-two=1000,mockoon-three=1000
+
+  http-log-to-event-svc-http-log-consumer-2:
+    build:
+      context: .
+      dockerfile: ./svc-http-log-consumer/Dockerfile
+    labels:
+      com.my.service.name: "Service HTTP Log Server Consumer"
+      com.my.service.description: "Service HTTP Log Server Consumer"
+      com.my.service.image: "svc-http-log-consumer"
+    networks:
+      default:
+        aliases:
+          - svc-http-log-consumer-2.my.internal
+    ports:
+      - "5002:80"
+    depends_on:
+      - http-log-to-event-redis
+    volumes:
+      - type: bind
+        source: ./svc-http-log-consumer
+        target: /home/app/svc-http-log-consumer
+    command:
+      - --service=svc-http-log-consumer
+      - --server=svc-http-log-consumer-2
+      - --redis=redis.my.internal:6379
+      - --http=:80
+      - --endpoints=mockoon-one=1000,mockoon-two=1000,mockoon-three=1000
+
+  http-log-to-event-svc-http-log-consumer-3:
+    build:
+      context: .
+      dockerfile: ./svc-http-log-consumer/Dockerfile
+    labels:
+      com.my.service.name: "Service HTTP Log Server Consumer"
+      com.my.service.description: "Service HTTP Log Server Consumer"
+      com.my.service.image: "svc-http-log-consumer"
+    networks:
+      default:
+        aliases:
+          - svc-http-log-consumer-3.my.internal
+    ports:
+      - "5003:80"
+    depends_on:
+      - http-log-to-event-redis
+    volumes:
+      - type: bind
+        source: ./svc-http-log-consumer
+        target: /home/app/svc-http-log-consumer
+    command:
+      - --service=svc-http-log-consumer
+      - --server=svc-http-log-consumer-3
+      - --redis=redis.my.internal:6379
+      - --http=:80
+      - --endpoints=mockoon-one=1000,mockoon-two=1000,mockoon-three=1000
